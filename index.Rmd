@@ -11,22 +11,38 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Loading The Data
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+We start our analysis by loading both the test and training datasets and looking at the number of variables and observations. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r cache=TRUE}
+trainingUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testingUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 
-```{r cars}
-summary(cars)
+download.file(trainingUrl,"training.csv")
+download.file(testingUrl,"testing.csv")
+
+training <- read.csv("training.csv")
+testing <- read.csv("testing.csv")
+
+dimTraining <- dim(training)
+dimTesting <- dim(testing)
+
+dimBoth <- rbind(dimTraining, dimTesting)
+colnames(dimBoth) <- c("Observations", "Variables")
+print(dimBoth)
 ```
 
-## Including Plots
+Since we have a large number of observations in the  training dataset, we are going to break it into a new training and a validation dataset. This way, we are going to be able to perform a cross-validation in the following way: training our model with the training dataset, validating it with the validation dataset and testing it with the testing dataset to get unbiased results and an out-sample error. To make our analysis reproducible, we are going to set a seed.
 
-You can also embed plots, for example:
+```{r cache=TRUE, message=FALSE, warning=FALSE}
+library(caret)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+set.seed(1234)
+
+inTrain <- createDataPartition(y=training$class, p=0.7, list=F)
+validation <- training[-inTrain,]
+training <- training[inTrain,]
+
+str(training)
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
