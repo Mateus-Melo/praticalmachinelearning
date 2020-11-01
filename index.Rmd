@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Loading The Data
+## Loading and Setting The Data
 
 We start our analysis by loading both the test and training datasets and looking at the number of variables and observations. 
 
@@ -43,6 +43,67 @@ set.seed(1234)
 inTrain <- createDataPartition(y=training$class, p=0.7, list=F)
 validation <- training[-inTrain,]
 training <- training[inTrain,]
-
-str(training)
 ```
+
+## Variables Selection
+
+Since we have 160 variables, build a model that uses all of them would be time consuming and would have a large variance. To avoid such a thing, we must cut down some of these variables. Let us take a look on some general information about them.
+
+```{r cache=T}
+summary(training)
+```
+
+The first 7 variables represent some general information about that activities that may be not important or even misleading to the model building. Also, we have a large number of NAs in some variables and some have the words std, avg and var on their names, indicating that they must be highly correlated with some other variables. Let us remove these variables from the datasets. Then, we will see how many variables we have left.
+
+```{r cache=T}
+takeOut <- 1:7
+stdNames <- grep("std",colnames(training))
+avgNames <- grep("avg", colnames(training))
+varNames <- grep("var", colnames(training))
+
+for(i in 8:(ncol(training)-1)){
+        if(sum(is.na(training[,i]))>0|sum(training[,i]==""))
+                takeOut <- c(takeOut, i)
+}
+takeOut <- c(takeOut, stdNames, avgNames, varNames)
+training <- training[,-takeOut]
+testing <- testing[,-takeOut]
+validation <- validation[,-takeOut]
+rbind(dim(training),dim(validation),dim(testing))
+```
+
+We end up with 53 variables, which still is a large amount.
+
+## Model Building
+
+Since we have a classification problem and the model interpretability is not crucial, a random forest model would be an interesting choice providing a good accuracy. We are going to use it along with a PCA pre-processing so we can lower the number of predictors. Since the a random forest model can take a long time to be built, we are going to make use of the CPU multiple cores. We are going to perform a 5 fold cross validation. We will start with a PCA that explains 80% of the variance. Then, we will check whether or not this give us an accuracy larger than 90% in the validation dataset. If not, we will keep rising it until the accuracy is large enough.
+
+```{r cache=T, warning=F, message=F}
+library(parallel)
+library(doParallel)
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+fitControl <- trainControl(method="cv", number = 5, preProcOptions=list(thresh=0.8), allowParallel = T)
+y = training[,53]
+x = training[,-53]
+fit1 <- train(x,y, method="rf",preProc ="pca", trControl = fitControl)
+fit1
+```
+
+We have got an accuracy of 95%, which is good enough. Now let us test it with the validation dataset.
+
+```{r cache=T, warning=F, message=F}
+pred1 <- predict(fit1, validation)
+confusionMatrix(factor(pred1),factor(validation$classe))
+```
+
+We have got an accuracy of 96%. The model is considered to be good and we are ready evaluate on the testing dataset.
+
+## Testing The Model
+
+```{r cache=T, warning=F, message=F}
+testPred <- predict(fit1, testing)
+testPred
+```
+
+Submitting the answers to the quiz, we have got an accuracy of 90%.
