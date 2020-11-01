@@ -76,7 +76,7 @@ We end up with 53 variables, which still is a large amount.
 
 ## Model Building
 
-Since we have a classification problem and the model interpretability is not crucial, a random forest model would be an interesting choice providing a good accuracy. We are going to use it along with a PCA pre-processing so we can lower the number of predictors. Since the a random forest model can take a long time to be built, we are going to make use of the CPU multiple cores. We are going to perform a 5 fold cross validation. We will start with a PCA that explains 80% of the variance. Then, we will check whether or not this give us an accuracy larger than 90% in the validation dataset. If not, we will keep rising it until the accuracy is large enough.
+Since we have a classification problem and the model interpretability is not crucial, a random forest model would be an interesting choice providing a good accuracy. We are going to use it along with a PCA pre-processing so we can lower the number of predictors. Since the a random forest model can take a long time to be built, we are going to make use of the CPU multiple cores. We are going to perform a 5 fold cross validation to get an estimate of the out-of-sample error. We will start with a PCA that explains 80% of the variance. Then, we will check whether or not this give us an accuracy larger than 90% in the validation dataset. If not, we will keep rising it until the accuracy is large enough.
 
 ```{r cache=T, warning=F, message=F}
 library(parallel)
@@ -90,14 +90,17 @@ fit1 <- train(x,y, method="rf",preProc ="pca", trControl = fitControl)
 fit1
 ```
 
-We have got an accuracy of 95%, which is good enough. Now let us test it with the validation dataset.
+We have got an out-of-sample accuracy estimate of 95%, which is good enough. Now let us test the model in both validation and training dataset.
 
 ```{r cache=T, warning=F, message=F}
-pred1 <- predict(fit1, validation)
-confusionMatrix(factor(pred1),factor(validation$classe))
+validationPred <- predict(fit1, validation)
+confusionMatrix(factor(validationPred),factor(validation$classe))
+trainingPred <- predict(fit1, training)
+confusionMatrix(factor(trainingPred),factor(training$classe))
 ```
 
-We have got an accuracy of 96%. The model is considered to be good and we are ready evaluate on the testing dataset.
+
+We have got an accuracy of 100% in the training dataset. That happens due to overfitting the model. In the validation dataset we've had an accuracy of almost 96% which is close enough to our previous estimate.
 
 ## Testing The Model
 

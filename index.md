@@ -438,7 +438,7 @@ We end up with 53 variables, which still is a large amount.
 
 ## Model Building
 
-Since we have a classification problem and the model interpretability is not crucial, a random forest model would be an interesting choice providing a good accuracy. We are going to use it along with a PCA pre-processing so we can lower the number of predictors. Since the a random forest model can take a long time to be built, we are going to make use of the CPU multiple cores. We are going to perform a 5 fold cross validation. We will start with a PCA that explains 80% of the variance. Then, we will check whether or not this give us an accuracy larger than 90% in the validation dataset. If not, we will keep rising it until the accuracy is large enough.
+Since we have a classification problem and the model interpretability is not crucial, a random forest model would be an interesting choice providing a good accuracy. We are going to use it along with a PCA pre-processing so we can lower the number of predictors. Since the a random forest model can take a long time to be built, we are going to make use of the CPU multiple cores. We are going to perform a 5 fold cross validation to get an estimate of the out-of-sample error. We will start with a PCA that explains 80% of the variance. Then, we will check whether or not this give us an accuracy larger than 90% in the validation dataset. If not, we will keep rising it until the accuracy is large enough.
 
 
 ```r
@@ -475,12 +475,12 @@ fit1
 ## The final value used for the model was mtry = 2.
 ```
 
-We have got an accuracy of 95%, which is good enough. Now let us test it with the validation dataset.
+We have got an out-of-sample accuracy estimate of 95%, which is good enough. Now let us test the model in both validation and training dataset.
 
 
 ```r
-pred1 <- predict(fit1, validation)
-confusionMatrix(factor(pred1),factor(validation$classe))
+validationPred <- predict(fit1, validation)
+confusionMatrix(factor(validationPred),factor(validation$classe))
 ```
 
 ```
@@ -518,7 +518,48 @@ confusionMatrix(factor(pred1),factor(validation$classe))
 ## Balanced Accuracy      0.9830   0.9697   0.9657   0.9607   0.9875
 ```
 
-We have got an accuracy of 96%. The model is considered to be good and we are ready evaluate on the testing dataset.
+```r
+trainingPred <- predict(fit1, training)
+confusionMatrix(factor(trainingPred),factor(training$classe))
+```
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 3906    0    0    0    0
+##          B    0 2658    0    0    0
+##          C    0    0 2396    0    0
+##          D    0    0    0 2252    0
+##          E    0    0    0    0 2525
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.9997, 1)
+##     No Information Rate : 0.2843     
+##     P-Value [Acc > NIR] : < 2.2e-16  
+##                                      
+##                   Kappa : 1          
+##                                      
+##  Mcnemar's Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Specificity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Prevalence             0.2843   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2843   0.1935   0.1744   0.1639   0.1838
+## Detection Prevalence   0.2843   0.1935   0.1744   0.1639   0.1838
+## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000
+```
+
+
+We have got an accuracy of 100% in the training dataset. That happens due to overfitting the model. In the validation dataset we've had an accuracy of almost 96% which is close enough to our previous estimate.
 
 ## Testing The Model
 
